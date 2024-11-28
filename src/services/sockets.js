@@ -48,13 +48,10 @@ io.on("connection", (socket) => {
       };
 
       socket.join(roomCode); // El usuario se une a la sala recién creada
-      console.log(rooms[roomCode]);  
+      console.log(rooms[roomCode]);
       // Emitir el código de la sala al cliente que la creó
       socket.emit("nombre-de-sala", roomCode);
-      io.to(roomCode).emit(
-        "actualizar-usuarios",
-        rooms[roomCode].userDetails
-      );
+      io.to(roomCode).emit("actualizar-usuarios", rooms[roomCode].userDetails);
       console.log(`Sala ${roomCode} creada por ${socket.id}`);
     } else {
       // Si la sala ya existe (esto no debería pasar con tu lógica de generar código único)
@@ -75,7 +72,7 @@ io.on("connection", (socket) => {
       if (!rooms[roomCode].users.includes(socket.id)) {
         rooms[roomCode].users.push(socket.id);
         rooms[roomCode].userDetails.push(userDetail);
-      } 
+      }
 
       // Emitimos los cambios a todos los usuarios en la sala
       io.to(roomCode).emit("actualizar-usuarios", rooms[roomCode].userDetails);
@@ -228,14 +225,14 @@ io.on("connection", (socket) => {
 
   socket.on("actualizar-votos", ({ roomCode, song }) => {
     if (rooms[roomCode]) {
-      // Buscar la canción en la lista
+      // Buscar la canción en la lista por su id o cualquier atributo único
       const songIndex = rooms[roomCode].musicQueue.findIndex(
-        (item) => item.name === song.name
+        (item) => item.id === song.id // Idealmente usar un identificador único como 'id'
       );
 
       if (songIndex !== -1) {
-        // Actualizar los votos de la canción
-        rooms[roomCode].musicQueue[songIndex].votos = song.votos;
+        // Reemplazar la canción con los votos actualizados
+        rooms[roomCode].musicQueue[songIndex] = song;
 
         // Emitir la lista actualizada de música a todos los usuarios de la sala
         io.to(roomCode).emit(
@@ -243,6 +240,36 @@ io.on("connection", (socket) => {
           rooms[roomCode].musicQueue
         );
       }
+    }
+  });
+  // Evento para eliminar la canción más votada
+  socket.on("eliminar-musica-mas-votada", ({ roomCode, song }) => {
+    if (rooms[roomCode]) {
+      // Buscar la canción en la cola de música (musicQueue) por alguna propiedad única, como el id
+      const songIndex = rooms[roomCode].musicQueue.findIndex(
+        (item) => item.id === song.id // Usamos 'id' como identificador único
+      );
+
+      if (songIndex !== -1) {
+        // Eliminar la canción de la cola de música
+        const removedSong = rooms[roomCode].musicQueue.splice(songIndex, 1)[0];
+        console.log(
+          `Canción eliminada de musicQueue en la sala ${roomCode}:`,
+          removedSong.name
+        );
+
+        // Emitir a todos los usuarios de la sala la lista de música actualizada
+        io.to(roomCode).emit(
+          "actualizar-cola-musica",
+          rooms[roomCode].musicQueue
+        );
+      } else {
+        console.log(
+          `La canción con id ${song.id} no se encuentra en la cola de música.`
+        );
+      }
+    } else {
+      console.log(`La sala ${roomCode} no existe.`);
     }
   });
 });

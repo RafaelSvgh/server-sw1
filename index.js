@@ -17,7 +17,7 @@ require("./src/services/sockets");
 // Servir archivos estáticos
 const publicPath = path.resolve(__dirname, "public");
 app.use(express.static(publicPath));
-
+ 
 // Iniciar servidor
 server.listen(PORT, (err) => {
   if (err) throw new Error(err);
